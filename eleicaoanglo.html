@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urna Eletrônica - Votação das Turmas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .urna {
+            background-color: #dbd5c9;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            display: flex;
+            gap: 20px;
+            width: 800px;
+            max-width: 95vw;
+        }
+        .tela {
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .info-voto {
+            font-size: 24px;
+            text-transform: uppercase;
+        }
+        .numeros-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .numero {
+            width: 40px;
+            height: 50px;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            font-weight: bold;
+        }
+        .pisca {
+            animation: piscar 1s infinite;
+        }
+        @keyframes piscar {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .mensagem {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 20px;
+            min-height: 35px;
+        }
+        .instrucoes {
+            font-size: 14px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+            margin-top: 20px;
+        }
+        .teclado {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 300px;
+        }
+        .teclas-numericas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .tecla {
+            background-color: #111;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        .tecla:active {
+            transform: translateY(2px);
+            box-shadow: 0px 0px 2px rgba(0,0,0,0.5);
+        }
+        .teclas-acao {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-acao {
+            flex: 1;
+            border: none;
+            border-radius: 3px;
+            padding: 15px 5px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            color: #000;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn-acao:active {
+            transform: translateY(2px);
+        }
+        .branco { background-color: #fff; }
+        .corrige { background-color: #f39c12; }
+        .confirma { background-color: #2ecc71; padding: 20px 5px; } /* Confirma é um pouco maior */
+        
+        /* Painel Admin */
+        .admin-panel {
+            display: none;
+            width: 100%;
+        }
+        .admin-panel h2 { margin-top: 0; }
+        .btn-zerar {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="urna">
+        <div class="tela" id="tela-principal">
+            <div>
+                <div class="info-voto">Seu voto para:</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 10px;">TURMA DE DESTAQUE</div>
+                
+                <div class="numeros-container" id="display-numeros">
+                    <div class="numero pisca" id="num1"></div>
+                    <div class="numero" id="num2"></div>
+                </div>
+
+                <div class="mensagem" id="mensagem-tela"></div>
+            </div>
+
+            <div class="instrucoes">
+                Aperte a tecla:<br>
+                VERDE para CONFIRMAR<br>
+                LARANJA para CORRIGIR
+            </div>
+        </div>
+
+        <!-- Tela do Administrador (Oculta por padrão) -->
+        <div class="tela admin-panel" id="tela-admin">
+            <h2>Painel de Contagem</h2>
+            <div id="resultado-votos"></div>
+            <button class="btn-zerar" onclick="zerarUrna()">Zerar Urna (Zerésima)</button>
+            <button class="btn-zerar" style="background-color: #3498db; margin-left: 10px;" onclick="fecharAdmin()">Sair</button>
+        </div>
+
+        <div class="teclado">
+            <div class="teclas-numericas">
+                <button class="tecla" onclick="clicouNum('1')">1</button>
+                <button class="tecla" onclick="clicouNum('2')">2</button>
+                <button class="tecla" onclick="clicouNum('3')">3</button>
+                <button class="tecla" onclick="clicouNum('4')">4</button>
+                <button class="tecla" onclick="clicouNum('5')">5</button>
+                <button class="tecla" onclick="clicouNum('6')">6</button>
+                <button class="tecla" onclick="clicouNum('7')">7</button>
+                <button class="tecla" onclick="clicouNum('8')">8</button>
+                <button class="tecla" onclick="clicouNum('9')">9</button>
+                <button class="tecla" style="grid-column: 2;" onclick="clicouNum('0')">0</button>
+            </div>
+            <div class="teclas-acao">
+                <button class="btn-acao branco" onclick="votarBranco()">Branco</button>
+                <button class="btn-acao corrige" onclick="corrigir()">Corrige</button>
+                <button class="btn-acao confirma" onclick="confirmar()">Confirma</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Banco de dados das turmas
+        const turmas = {
+            "51": "5º A",
+            "52": "5º B",
+            "53": "5º C",
+            "54": "5º D"
+        };
+
+        // Estado da urna
+        let numeroDigitado = "";
+        let votoEmBranco = false;
+        let etapaAtual = "votando"; // votando, fim
+
+        // Inicializa o banco de dados no LocalStorage se não existir
+        if (!localStorage.getItem('votosEleicaoEscolar')) {
+            const estadoInicial = {
+                "51": 0, "52": 0, "53": 0, "54": 0, "branco": 0, "nulo": 0
+            };
+            localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
+        }
+
+        // Sintetizador de áudio para o som da urna
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function tocarSom(frequencia, duracao) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequencia, audioCtx.currentTime);
+            oscillator.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duracao);
+        }
+
+        function somTecla() { tocarSom(800, 0.1); }
+        function somFim() { tocarSom(1200, 1.5); } // Som longo do "Confirma"
+
+        // Lógica de interface
+        function atualizarTela() {
+            const divNum1 = document.getElementById('num1');
+            const divNum2 = document.getElementById('num2');
+            const mensagem = document.getElementById('mensagem-tela');
+
+            if (votoEmBranco) {
+                divNum1.style.display = 'none';
+                divNum2.style.display = 'none';
+                mensagem.innerHTML = "VOTO EM BRANCO";
+                return;
+            }
+
+            divNum1.style.display = 'flex';
+            divNum2.style.display = 'flex';
+            
+            divNum1.innerText = numeroDigitado[0] || '';
+            divNum2.innerText = numeroDigitado[1] || '';
+
+            // Lógica do cursor piscando
+            divNum1.classList.remove('pisca');
+            divNum2.classList.remove('pisca');
+            if (numeroDigitado.length === 0) divNum1.classList.add('pisca');
+            if (numeroDigitado.length === 1) divNum2.classList.add('pisca');
+
+            if (numeroDigitado.length === 2) {
+                if (numeroDigitado === "99") {
+                    mensagem.innerHTML = "Acesso Admin";
+                } else if (turmas[numeroDigitado]) {
+                    mensagem.innerHTML = "Turma: " + turmas[numeroDigitado];
+                } else {
+                    mensagem.innerHTML = "VOTO NULO";
+                }
+            } else {
+                mensagem.innerHTML = "";
+            }
+        }
+
+        function clicouNum(n) {
+            somTecla();
+            if (etapaAtual !== "votando" || votoEmBranco) return;
+            
+            if (numeroDigitado.length < 2) {
+                numeroDigitado += n;
+                atualizarTela();
+            }
+        }
+
+        function votarBranco() {
+            somTecla();
+            if (etapaAtual !== "votando") return;
+            if (numeroDigitado === "") {
+                votoEmBranco = true;
+                atualizarTela();
+            }
+        }
+
+        function corrigir() {
+            somTecla();
+            if (etapaAtual !== "votando") return;
+            numeroDigitado = "";
+            votoEmBranco = false;
+            atualizarTela();
+        }
+
+        function confirmar() {
+            if (etapaAtual !== "votando") return;
+
+            // Acesso ao Painel Admin
+            if (numeroDigitado === "99") {
+                somTecla();
+                abrirAdmin();
+                numeroDigitado = "";
+                atualizarTela();
+                return;
+            }
+
+            let votos = JSON.parse(localStorage.getItem('votosEleicaoEscolar'));
+            let votoConfirmado = false;
+
+            if (votoEmBranco) {
+                votos.branco++;
+                votoConfirmado = true;
+            } else if (numeroDigitado.length === 2) {
+                if (turmas[numeroDigitado]) {
+                    votos[numeroDigitado]++; // Voto Válido
+                } else {
+                    votos.nulo++; // Voto Nulo
+                }
+                votoConfirmado = true;
+            }
+
+            if (votoConfirmado) {
+                somFim();
+                localStorage.setItem('votosEleicaoEscolar', JSON.stringify(votos));
+                etapaAtual = "fim";
+                
+                document.getElementById('display-numeros').style.display = 'none';
+                document.getElementById('mensagem-tela').innerHTML = "<div style='font-size: 50px; margin-top: 20px; text-align: center;'>FIM</div>";
+
+                // Reseta a urna após 3 segundos para o próximo aluno
+                setTimeout(() => {
+                    etapaAtual = "votando";
+                    numeroDigitado = "";
+                    votoEmBranco = false;
+                    document.getElementById('display-numeros').style.display = 'flex';
+                    atualizarTela();
+                }, 3000);
+            }
+        }
+
+        // Funções do Painel Admin
+        function abrirAdmin() {
+            document.getElementById('tela-principal').style.display = 'none';
+            document.getElementById('tela-admin').style.display = 'block';
+            
+            let votos = JSON.parse(localStorage.getItem('votosEleicaoEscolar'));
+            let htmlResultados = "<ul>";
+            htmlResultados += `<li><strong>5º A (51):</strong> ${votos['51']} votos</li>`;
+            htmlResultados += `<li><strong>5º B (52):</strong> ${votos['52']} votos</li>`;
+            htmlResultados += `<li><strong>5º C (53):</strong> ${votos['53']} votos</li>`;
+            htmlResultados += `<li><strong>5º D (54):</strong> ${votos['54']} votos</li>`;
+            htmlResultados += `<li><strong>Brancos:</strong> ${votos.branco} votos</li>`;
+            htmlResultados += `<li><strong>Nulos:</strong> ${votos.nulo} votos</li>`;
+            htmlResultados += "</ul>";
+            
+            let total = votos['51'] + votos['52'] + votos['53'] + votos['54'] + votos.branco + votos.nulo;
+            htmlResultados += `<p><strong>Total de Votos Registrados:</strong> ${total}</p>`;
+            
+            document.getElementById('resultado-votos').innerHTML = htmlResultados;
+        }
+
+        function fecharAdmin() {
+            document.getElementById('tela-admin').style.display = 'none';
+            document.getElementById('tela-principal').style.display = 'flex';
+        }
+
+        function zerarUrna() {
+            if(confirm("Tem certeza que deseja apagar TODOS os votos? Esta ação não pode ser desfeita.")) {
+                const estadoInicial = { "51": 0, "52": 0, "53": 0, "54": 0, "branco": 0, "nulo": 0 };
+                localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
+                alert("Urna zerada com sucesso! Pronta para a eleição.");
+                abrirAdmin(); // Atualiza a tela de contagem para zeros
+            }
+        }
+
+        // Inicializa a tela
+        atualizarTela();
+    </script>
+</body>
+</html>
