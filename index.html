@@ -213,42 +213,20 @@
             localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
         }
 
-        // --- SISTEMA DE SOM MELHORADO ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function tocarNota(frequencia, inicio, duracao, tipo = 'sine') {
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            oscillator.type = tipo;
-            oscillator.frequency.value = frequencia;
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            oscillator.start(audioCtx.currentTime + inicio);
-            oscillator.stop(audioCtx.currentTime + inicio + duracao);
-            
-            // Suaviza o som para não dar "estalos" no alto-falante
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + inicio);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + inicio + duracao);
-        }
+        // --- SISTEMA DE SOM COM OS ÁUDIOS ORIGINAIS (MP3) ---
+        const audioTecla = new Audio('https://raw.githubusercontent.com/william-costa/wdev-urna-eletronica-resources/master/audios/seletor.mp3');
+        const audioConfirma = new Audio('https://raw.githubusercontent.com/william-costa/wdev-urna-eletronica-resources/master/audios/confirma.mp3');
 
-        function somTecla() { 
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            tocarNota(800, 0, 0.1, 'sine'); 
+        function tocarSomTecla() { 
+            audioTecla.currentTime = 0; // Reinicia o áudio se apertar rápido
+            audioTecla.play(); 
         }
         
-        function somFim() { 
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            // Sequência clássica da urna: pi-pi-pi-pi-piiiii
-            tocarNota(1300, 0, 0.08, 'square');
-            tocarNota(1300, 0.15, 0.08, 'square');
-            tocarNota(1300, 0.30, 0.08, 'square');
-            tocarNota(1300, 0.45, 0.08, 'square');
-            tocarNota(1300, 0.65, 0.8, 'square'); // Última nota mais longa
+        function tocarSomFim() { 
+            audioConfirma.currentTime = 0;
+            audioConfirma.play(); 
         }
-        // ---------------------------------
+        // ----------------------------------------------------
 
         function atualizarTela() {
             const divNum1 = document.getElementById('num1');
@@ -287,7 +265,7 @@
         }
 
         function clicouNum(n) {
-            somTecla();
+            tocarSomTecla();
             if (etapaAtual !== "votando" || votoEmBranco) return;
             
             if (numeroDigitado.length < 2) {
@@ -297,7 +275,7 @@
         }
 
         function votarBranco() {
-            somTecla();
+            tocarSomTecla();
             if (etapaAtual !== "votando") return;
             if (numeroDigitado === "") {
                 votoEmBranco = true;
@@ -306,7 +284,7 @@
         }
 
         function corrigir() {
-            somTecla();
+            tocarSomTecla();
             if (etapaAtual !== "votando") return;
             numeroDigitado = "";
             votoEmBranco = false;
@@ -317,7 +295,7 @@
             if (etapaAtual !== "votando") return;
 
             if (numeroDigitado === "99") {
-                somTecla();
+                tocarSomTecla();
                 abrirAdmin();
                 numeroDigitado = "";
                 atualizarTela();
@@ -340,7 +318,7 @@
             }
 
             if (votoConfirmado) {
-                somFim();
+                tocarSomFim();
                 localStorage.setItem('votosEleicaoEscolar', JSON.stringify(votos));
                 etapaAtual = "fim";
                 
