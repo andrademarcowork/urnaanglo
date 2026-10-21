@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Urna Eletrônica - Votação das Turmas</title>
+    <title>Urna Eletrônica - Votação</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -124,9 +124,8 @@
         }
         .branco { background-color: #fff; }
         .corrige { background-color: #f39c12; }
-        .confirma { background-color: #2ecc71; padding: 20px 5px; } /* Confirma é um pouco maior */
+        .confirma { background-color: #2ecc71; padding: 20px 5px; }
         
-        /* Painel Admin */
         .admin-panel {
             display: none;
             width: 100%;
@@ -150,7 +149,7 @@
         <div class="tela" id="tela-principal">
             <div>
                 <div class="info-voto">Seu voto para:</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 10px;">TURMA DE DESTAQUE</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 10px;">GRUPO DE DESTAQUE</div>
                 
                 <div class="numeros-container" id="display-numeros">
                     <div class="numero pisca" id="num1"></div>
@@ -167,7 +166,6 @@
             </div>
         </div>
 
-        <!-- Tela do Administrador (Oculta por padrão) -->
         <div class="tela admin-panel" id="tela-admin">
             <h2>Painel de Contagem</h2>
             <div id="resultado-votos"></div>
@@ -197,20 +195,17 @@
     </div>
 
     <script>
-        // Banco de dados das turmas
         const turmas = {
-            "51": "5º A",
-            "52": "5º B",
-            "53": "5º C",
-            "54": "5º D"
+            "51": "Grupo A",
+            "52": "Grupo B",
+            "53": "Grupo C",
+            "54": "Grupo D"
         };
 
-        // Estado da urna
         let numeroDigitado = "";
         let votoEmBranco = false;
-        let etapaAtual = "votando"; // votando, fim
+        let etapaAtual = "votando"; 
 
-        // Inicializa o banco de dados no LocalStorage se não existir
         if (!localStorage.getItem('votosEleicaoEscolar')) {
             const estadoInicial = {
                 "51": 0, "52": 0, "53": 0, "54": 0, "branco": 0, "nulo": 0
@@ -218,22 +213,43 @@
             localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
         }
 
-        // Sintetizador de áudio para o som da urna
+        // --- SISTEMA DE SOM MELHORADO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function tocarSom(frequencia, duracao) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        function tocarNota(frequencia, inicio, duracao, tipo = 'sine') {
             const oscillator = audioCtx.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(frequencia, audioCtx.currentTime);
-            oscillator.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + duracao);
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = tipo;
+            oscillator.frequency.value = frequencia;
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(audioCtx.currentTime + inicio);
+            oscillator.stop(audioCtx.currentTime + inicio + duracao);
+            
+            // Suaviza o som para não dar "estalos" no alto-falante
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + inicio);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + inicio + duracao);
         }
 
-        function somTecla() { tocarSom(800, 0.1); }
-        function somFim() { tocarSom(1200, 1.5); } // Som longo do "Confirma"
+        function somTecla() { 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            tocarNota(800, 0, 0.1, 'sine'); 
+        }
+        
+        function somFim() { 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            // Sequência clássica da urna: pi-pi-pi-pi-piiiii
+            tocarNota(1300, 0, 0.08, 'square');
+            tocarNota(1300, 0.15, 0.08, 'square');
+            tocarNota(1300, 0.30, 0.08, 'square');
+            tocarNota(1300, 0.45, 0.08, 'square');
+            tocarNota(1300, 0.65, 0.8, 'square'); // Última nota mais longa
+        }
+        // ---------------------------------
 
-        // Lógica de interface
         function atualizarTela() {
             const divNum1 = document.getElementById('num1');
             const divNum2 = document.getElementById('num2');
@@ -252,7 +268,6 @@
             divNum1.innerText = numeroDigitado[0] || '';
             divNum2.innerText = numeroDigitado[1] || '';
 
-            // Lógica do cursor piscando
             divNum1.classList.remove('pisca');
             divNum2.classList.remove('pisca');
             if (numeroDigitado.length === 0) divNum1.classList.add('pisca');
@@ -262,7 +277,7 @@
                 if (numeroDigitado === "99") {
                     mensagem.innerHTML = "Acesso Admin";
                 } else if (turmas[numeroDigitado]) {
-                    mensagem.innerHTML = "Turma: " + turmas[numeroDigitado];
+                    mensagem.innerHTML = turmas[numeroDigitado];
                 } else {
                     mensagem.innerHTML = "VOTO NULO";
                 }
@@ -301,7 +316,6 @@
         function confirmar() {
             if (etapaAtual !== "votando") return;
 
-            // Acesso ao Painel Admin
             if (numeroDigitado === "99") {
                 somTecla();
                 abrirAdmin();
@@ -318,9 +332,9 @@
                 votoConfirmado = true;
             } else if (numeroDigitado.length === 2) {
                 if (turmas[numeroDigitado]) {
-                    votos[numeroDigitado]++; // Voto Válido
+                    votos[numeroDigitado]++; 
                 } else {
-                    votos.nulo++; // Voto Nulo
+                    votos.nulo++; 
                 }
                 votoConfirmado = true;
             }
@@ -333,7 +347,6 @@
                 document.getElementById('display-numeros').style.display = 'none';
                 document.getElementById('mensagem-tela').innerHTML = "<div style='font-size: 50px; margin-top: 20px; text-align: center;'>FIM</div>";
 
-                // Reseta a urna após 3 segundos para o próximo aluno
                 setTimeout(() => {
                     etapaAtual = "votando";
                     numeroDigitado = "";
@@ -344,17 +357,16 @@
             }
         }
 
-        // Funções do Painel Admin
         function abrirAdmin() {
             document.getElementById('tela-principal').style.display = 'none';
             document.getElementById('tela-admin').style.display = 'block';
             
             let votos = JSON.parse(localStorage.getItem('votosEleicaoEscolar'));
             let htmlResultados = "<ul>";
-            htmlResultados += `<li><strong>5º A (51):</strong> ${votos['51']} votos</li>`;
-            htmlResultados += `<li><strong>5º B (52):</strong> ${votos['52']} votos</li>`;
-            htmlResultados += `<li><strong>5º C (53):</strong> ${votos['53']} votos</li>`;
-            htmlResultados += `<li><strong>5º D (54):</strong> ${votos['54']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo A (51):</strong> ${votos['51']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo B (52):</strong> ${votos['52']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo C (53):</strong> ${votos['53']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo D (54):</strong> ${votos['54']} votos</li>`;
             htmlResultados += `<li><strong>Brancos:</strong> ${votos.branco} votos</li>`;
             htmlResultados += `<li><strong>Nulos:</strong> ${votos.nulo} votos</li>`;
             htmlResultados += "</ul>";
@@ -375,11 +387,10 @@
                 const estadoInicial = { "51": 0, "52": 0, "53": 0, "54": 0, "branco": 0, "nulo": 0 };
                 localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
                 alert("Urna zerada com sucesso! Pronta para a eleição.");
-                abrirAdmin(); // Atualiza a tela de contagem para zeros
+                abrirAdmin(); 
             }
         }
 
-        // Inicializa a tela
         atualizarTela();
     </script>
 </body>
