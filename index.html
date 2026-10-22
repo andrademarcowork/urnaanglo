@@ -145,7 +145,7 @@
 </head>
 <body>
 
-    
+    <!-- ÁUDIOS EMBUTIDOS NO HTML (Apontando para os arquivos locais no seu GitHub) -->
     <audio id="som-tecla" preload="auto" src="tecla.mp3"></audio>
     <audio id="som-fim" preload="auto" src="confirma.mp3"></audio>
 
@@ -291,4 +291,88 @@
             if (etapaAtual !== "votando") return;
             numeroDigitado = "";
             votoEmBranco = false;
-            atual
+            atualizarTela();
+        }
+
+        function confirmar() {
+            if (etapaAtual !== "votando") return;
+
+            if (numeroDigitado === "99") {
+                tocarSomTecla();
+                abrirAdmin();
+                numeroDigitado = "";
+                atualizarTela();
+                return;
+            }
+
+            let votos = JSON.parse(localStorage.getItem('votosEleicaoEscolar'));
+            let votoConfirmado = false;
+
+            if (votoEmBranco) {
+                votos.branco++;
+                votoConfirmado = true;
+            } else if (numeroDigitado.length === 2) {
+                if (turmas[numeroDigitado]) {
+                    votos[numeroDigitado]++; 
+                } else {
+                    votos.nulo++; 
+                }
+                votoConfirmado = true;
+            }
+
+            if (votoConfirmado) {
+                tocarSomFim();
+                localStorage.setItem('votosEleicaoEscolar', JSON.stringify(votos));
+                etapaAtual = "fim";
+                
+                document.getElementById('display-numeros').style.display = 'none';
+                document.getElementById('mensagem-tela').innerHTML = "<div style='font-size: 50px; margin-top: 20px; text-align: center;'>FIM</div>";
+
+                setTimeout(() => {
+                    etapaAtual = "votando";
+                    numeroDigitado = "";
+                    votoEmBranco = false;
+                    document.getElementById('display-numeros').style.display = 'flex';
+                    atualizarTela();
+                }, 3000);
+            }
+        }
+
+        function abrirAdmin() {
+            document.getElementById('tela-principal').style.display = 'none';
+            document.getElementById('tela-admin').style.display = 'block';
+            
+            let votos = JSON.parse(localStorage.getItem('votosEleicaoEscolar'));
+            let htmlResultados = "<ul>";
+            htmlResultados += `<li><strong>Grupo A (51):</strong> ${votos['51']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo B (52):</strong> ${votos['52']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo C (53):</strong> ${votos['53']} votos</li>`;
+            htmlResultados += `<li><strong>Grupo D (54):</strong> ${votos['54']} votos</li>`;
+            htmlResultados += `<li><strong>Brancos:</strong> ${votos.branco} votos</li>`;
+            htmlResultados += `<li><strong>Nulos:</strong> ${votos.nulo} votos</li>`;
+            htmlResultados += "</ul>";
+            
+            let total = votos['51'] + votos['52'] + votos['53'] + votos['54'] + votos.branco + votos.nulo;
+            htmlResultados += `<p><strong>Total de Votos Registrados:</strong> ${total}</p>`;
+            
+            document.getElementById('resultado-votos').innerHTML = htmlResultados;
+        }
+
+        function fecharAdmin() {
+            document.getElementById('tela-admin').style.display = 'none';
+            document.getElementById('tela-principal').style.display = 'flex';
+        }
+
+        function zerarUrna() {
+            if(confirm("Tem certeza que deseja apagar TODOS os votos? Esta ação não pode ser desfeita.")) {
+                const estadoInicial = { "51": 0, "52": 0, "53": 0, "54": 0, "branco": 0, "nulo": 0 };
+                localStorage.setItem('votosEleicaoEscolar', JSON.stringify(estadoInicial));
+                alert("Urna zerada com sucesso! Pronta para a eleição.");
+                abrirAdmin(); 
+            }
+        }
+
+        atualizarTela();
+    </script>
+</body>
+</html>
